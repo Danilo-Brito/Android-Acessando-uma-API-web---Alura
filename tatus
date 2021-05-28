@@ -1,0 +1,18 @@
+[33mcommit 369294966b8ebfdce85f28219da750ff38aa42f9[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Merge: 51c1657 d98d00f
+Author: Danilo Brito <danilomelo.brito19@gmail.com>
+Date:   Thu May 27 18:51:35 2021 -0300
+
+    Merge branch 'master' of https://github.com/Danilo-Brito/Android-Acessando-uma-API-web---Alura
+
+[33mcommit 51c1657a78ba5851ae865ad40476878cecfb979f[m
+Author: Danilo Brito <danilomelo.brito19@gmail.com>
+Date:   Thu May 27 18:35:06 2021 -0300
+
+    Configurando as requisições HTTP
+
+[33mcommit d98d00f05ff91c92b1395b90dbc4d78fc4d2d640[m
+Author: Danilo Brito <danilomelo.brito19@gmail.com>
+Date:   Thu May 27 18:09:14 2021 -0300
+
+    Initial commit

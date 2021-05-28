@@ -1,5 +1,6 @@
 package br.com.alura.estoque.ui.activity;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
@@ -51,27 +52,28 @@ public class ListaProdutosActivity extends AppCompatActivity {
         ProdutosService service = new EstoqueRetrofit().getProdutoService();
         Call<List<Produto>> call = service.buscaTodos();
 
-        new BaseAsyncTask<>(() -> {
-            try {
-                Response<List<Produto>> response = call.execute();
-                List<Produto> produtosNovos = response.body();
-                return produtosNovos;
+        new BaseAsyncTask<>(dao::buscaTodos,
+                resultado ->{
+                    adapter.atualiza(resultado);
+                    new BaseAsyncTask<>(() -> {
+                        try {
+                            Response<List<Produto>> response = call.execute();
+                            List<Produto> produtosNovos = response.body();
+                            dao.salva(produtosNovos);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        return dao.buscaTodos();
 
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }, produtosNovos -> {
-            if (produtosNovos != null){
-                adapter.atualiza(produtosNovos);
-            } else {
-                Toast.makeText(this,"Não foi possível buscar os produtos", Toast.LENGTH_SHORT).show();
-            }
-        }).execute();
-
-//        new BaseAsyncTask<>(dao::buscaTodos,
-//                resultado -> adapter.atualiza(resultado))
-//                .execute();
+                    }, produtosNovos -> {
+                        if (produtosNovos != null){
+                            adapter.atualiza(produtosNovos);
+                        } else {
+                            Toast.makeText(this,"Não foi possível buscar os produtos", Toast.LENGTH_SHORT).show();
+                        }
+                    }).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                })
+                .execute();
     }
 
     private void configuraListaProdutos() {
