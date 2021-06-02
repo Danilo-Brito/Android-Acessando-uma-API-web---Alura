@@ -1,8 +1,6 @@
 package br.com.alura.estoque.ui.activity;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -10,27 +8,22 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.IOException;
-import java.util.List;
-
 import br.com.alura.estoque.R;
 import br.com.alura.estoque.asynctask.BaseAsyncTask;
 import br.com.alura.estoque.database.EstoqueDatabase;
 import br.com.alura.estoque.database.dao.ProdutoDAO;
 import br.com.alura.estoque.model.Produto;
-import br.com.alura.estoque.retrofit.EstoqueRetrofit;
-import br.com.alura.estoque.retrofit.service.ProdutosService;
+import br.com.alura.estoque.repository.ProdutoRepository;
 import br.com.alura.estoque.ui.dialog.EditaProdutoDialog;
 import br.com.alura.estoque.ui.dialog.SalvaProdutoDialog;
 import br.com.alura.estoque.ui.recyclerview.adapter.ListaProdutosAdapter;
-import retrofit2.Call;
-import retrofit2.Response;
 
 public class ListaProdutosActivity extends AppCompatActivity {
 
     private static final String TITULO_APPBAR = "Lista de produtos";
     private ListaProdutosAdapter adapter;
     private ProdutoDAO dao;
+    private ProdutoRepository repository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,37 +37,11 @@ public class ListaProdutosActivity extends AppCompatActivity {
         EstoqueDatabase db = EstoqueDatabase.getInstance(this);
         dao = db.getProdutoDAO();
 
-        buscaProdutos();
+        repository = new ProdutoRepository(dao);
+//        repository.buscaProdutos(produtos -> adapter.atualiza(produtos));
+        repository.buscaProdutos(adapter::atualiza);
     }
 
-    private void buscaProdutos() {
-
-        ProdutosService service = new EstoqueRetrofit().getProdutoService();
-        Call<List<Produto>> call = service.buscaTodos();
-
-        new BaseAsyncTask<>(dao::buscaTodos,
-                resultado ->{
-                    adapter.atualiza(resultado);
-                    new BaseAsyncTask<>(() -> {
-                        try {
-                            Response<List<Produto>> response = call.execute();
-                            List<Produto> produtosNovos = response.body();
-                            dao.salva(produtosNovos);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        return dao.buscaTodos();
-
-                    }, produtosNovos -> {
-                        if (produtosNovos != null){
-                            adapter.atualiza(produtosNovos);
-                        } else {
-                            Toast.makeText(this,"Não foi possível buscar os produtos", Toast.LENGTH_SHORT).show();
-                        }
-                    }).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-                })
-                .execute();
-    }
 
     private void configuraListaProdutos() {
         RecyclerView listaProdutos = findViewById(R.id.activity_lista_produtos_lista);
@@ -98,16 +65,20 @@ public class ListaProdutosActivity extends AppCompatActivity {
     }
 
     private void abreFormularioSalvaProduto() {
-        new SalvaProdutoDialog(this, this::salva).mostra();
-    }
+        new SalvaProdutoDialog(this, produtoCriado ->
+                repository.salva(produtoCriado, new ProdutoRepository.DadosCarregadoCallback<Produto>() {
+                    @Override
+                    public void quandoSucesso(Produto produtoSalvo) {
+                        adapter.adiciona(produtoSalvo);
+                    }
 
-    private void salva(Produto produto) {
-        new BaseAsyncTask<>(() -> {
-            long id = dao.salva(produto);
-            return dao.buscaProduto(id);
-        }, produtoSalvo ->
-                adapter.adiciona(produtoSalvo))
-                .execute();
+                    @Override
+                    public void quandoFalha(String erro) {
+                        Toast.makeText(ListaProdutosActivity.this,
+                                "Não foi possível salvar o produto.", Toast.LENGTH_SHORT).show();
+                    }
+                }))
+                .mostra();
     }
 
     private void abreFormularioEditaProduto(int posicao, Produto produto) {
@@ -126,4 +97,7 @@ public class ListaProdutosActivity extends AppCompatActivity {
     }
 
 
+    private void quandoCarregados(Produto produtoSalvo) {
+        adapter.adiciona();
+    }
 }
